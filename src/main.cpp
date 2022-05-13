@@ -8,7 +8,10 @@
 // https://github.com/LennartHennigs/Button2
 #include "Button2.h"
 
-enum DisplayMode { MONEY, COIN, GRAPH, ABOUT };
+// Image about
+#include "crypto.h"
+
+enum DisplayMode { MONEY, COIN, PRICE, GRAPH, ABOUT };
 enum DisplayMode displayMode = MONEY;
 
 // TFT screen size
@@ -28,6 +31,7 @@ const String ERG_ADDRESS = "9hNSS97pfX14L96cFE2CwaAMWxtu1Zq7thcEJgnVtZyGeJnq5g6"
 const String ETH_ADDRESS = "0x257fFb03e617f9c9ebB2e719b4775F85F12c6567";
 const String BTC_ADDRESS = "1DeuttaiHr4aGswVszizMYYzDUAVmex63q";
 const String ETHERSCAN_API_KEY = "*** your etherscan api key ***";
+const String CRYPTOCOMPARE_API_KEY = "*** your cryptocompare api key ***";
 const String DISPLAY_MONEY = "EUR";
 
 TFT_eSPI tft = TFT_eSPI(SCREEN_HEIGHT, SCREEN_WIDTH);
@@ -142,12 +146,12 @@ double getMyBitcoin() {
 }
 
 double getPrice(String crypto) {
-  String url = "https://min-api.cryptocompare.com/data/price?fsym=" + crypto + "&tsyms=" + DISPLAY_MONEY;
+  String url = "https://min-api.cryptocompare.com/data/price?fsym=" + crypto + "&tsyms=" + DISPLAY_MONEY + "&api_key=" + CRYPTOCOMPARE_API_KEY;
 	httpPrice.begin(url);
   httpPrice.addHeader("Accept", "application/json");
 	int httpCode = httpPrice.GET();
  
-  double value = 0;
+  double value = -1;
 	if (httpCode == 200) {
 		String payload = httpPrice.getString();
 		// Serial.println(payload);
@@ -231,6 +235,21 @@ void displayCoin() {
   }
 }
 
+void displayPrice() {
+  tft.fillScreen(TFT_BLACK);
+  tft.drawRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, TFT_ORANGE);
+
+  for (size_t i = 0; i < MAX_COIN ; i++) {
+    Coin coin = (Coin)i;
+
+    tft.setTextColor(TFT_VIOLET);
+    tft.drawString(coinSymbol[coin] + " :", 5, lineDisplay[coin]);
+    
+    tft.setTextColor(TFT_MAGENTA);
+    tft.drawFloat(priceCurrent[coin], 5, 120, lineDisplay[coin]);
+  }
+}
+
 void displayGraph() {
   tft.fillScreen(TFT_BLACK);
 
@@ -294,10 +313,12 @@ void displayGraph() {
 
 void displayAbout() {
   tft.fillScreen(TFT_BLACK);
-  tft.drawRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, TFT_ORANGE);
 
-  tft.setTextColor(TFT_ORANGE);
-  tft.drawString("(c) Deuttai", 5, (tft.height() / 2) - (tft.fontHeight()) / 2);
+  tft.setSwapBytes(true);
+  tft.pushImage(0, 0, 240, 120, crypto);
+
+  tft.setTextColor(TFT_RED);
+  tft.drawString("(c) Deuttai", 5, SCREEN_HEIGHT - tft.fontHeight());
 }
 
 void refreshScreen() {
@@ -307,6 +328,9 @@ void refreshScreen() {
       break;
     case COIN:
       displayCoin();
+      break;
+    case PRICE:
+      displayPrice();
       break;
     case GRAPH:
       displayGraph();
@@ -323,6 +347,9 @@ void changeMode() {
       displayMode = COIN;
       break;
     case COIN:
+      displayMode = PRICE;
+      break;
+    case PRICE:
       displayMode = GRAPH;
       break;
     case GRAPH:
