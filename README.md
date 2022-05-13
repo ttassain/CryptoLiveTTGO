@@ -4,7 +4,7 @@ Petit programme qui permet de voir l'évolution de vos cryptos monnaie
 
 ## TTGO
 
-
+![Coin](https://github.com/ttassain/CryptoLiveTTGO/blob/main/coin.jpg?raw=true)
 
 ## Author
 
