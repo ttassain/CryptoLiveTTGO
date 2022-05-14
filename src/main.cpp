@@ -30,6 +30,8 @@ const char* password = "** your wifi password ***";
 const String ERG_ADDRESS = "9hNSS97pfX14L96cFE2CwaAMWxtu1Zq7thcEJgnVtZyGeJnq5g6";
 const String ETH_ADDRESS = "0x257fFb03e617f9c9ebB2e719b4775F85F12c6567";
 const String BTC_ADDRESS = "1DeuttaiHr4aGswVszizMYYzDUAVmex63q";
+
+// Config API
 const String ETHERSCAN_API_KEY = "*** your etherscan api key ***";
 const String CRYPTOCOMPARE_API_KEY = "*** your cryptocompare api key ***";
 const String DISPLAY_MONEY = "EUR";
@@ -145,36 +147,41 @@ double getMyBitcoin() {
   }
 }
 
-double getPrice(String crypto) {
-  String url = "https://min-api.cryptocompare.com/data/price?fsym=" + crypto + "&tsyms=" + DISPLAY_MONEY + "&api_key=" + CRYPTOCOMPARE_API_KEY;
-	httpPrice.begin(url);
-  httpPrice.addHeader("Accept", "application/json");
-	int httpCode = httpPrice.GET();
- 
-  double value = -1;
-	if (httpCode == 200) {
-		String payload = httpPrice.getString();
-		// Serial.println(payload);
-    DynamicJsonDocument doc(100);
-		deserializeJson(doc, payload);
-    String result = doc[DISPLAY_MONEY];
-    value = result.toDouble();
-  } else {
-    Serial.println("getPrice error :" + httpCode);
-  }
-  Serial.println(crypto + " = " + value);
-  return value;
-}
-
 void getPrices() {
   checkWifi();
   waitScreen("Loading prices...");
 
-  for (size_t i = 0; i < MAX_COIN ; i++) {
-    Coin coin = (Coin)i;
-    priceOld[coin] = priceCurrent[coin];
-    priceCurrent[coin] = getPrice(coinSymbol[coin]);
-    histoPrice[coin][histoIndex] = priceCurrent[coin];
+  String fsyms = "BTC,ETH,ERG";
+
+  String url = "https://min-api.cryptocompare.com/data/pricemulti?fsyms=" + fsyms + "&tsyms=" + DISPLAY_MONEY;
+	httpPrice.begin(url);
+  httpPrice.addHeader("Accept", "application/json");
+  httpPrice.addHeader("Authorization", "Apikey " + CRYPTOCOMPARE_API_KEY);
+	int httpCode = httpPrice.GET();
+ 
+  double value = 0;
+	if (httpCode == 200) {
+		String payload = httpPrice.getString();
+		// Serial.println(payload);
+    DynamicJsonDocument doc(300);
+		deserializeJson(doc, payload);
+  
+    // {"BTC":{"EUR":28356.11},"ETH":{"EUR":1963.92},"ERG":{"EUR":2.233}}
+    for (size_t i = 0; i < MAX_COIN ; i++) {
+      Coin coin = (Coin)i;
+
+      String result = doc[coinSymbol[coin]][DISPLAY_MONEY];
+      double value = result.toDouble();
+
+      priceOld[coin] = priceCurrent[coin];
+      priceCurrent[coin] = value;
+      histoPrice[coin][histoIndex] = priceCurrent[coin];
+
+      Serial.print(coinSymbol[coin] + " = ");
+      Serial.println(value);
+    }
+  } else {
+    Serial.println("getPrice error :" + httpCode);
   }
   
   histoIndex++;
@@ -264,7 +271,6 @@ void displayGraph() {
 
     for (size_t i = 0; i < HISTO_SIZE; i++) {
       double v = histoPrice[coin][i];
-
       if (v != 0) {
         if (v > max[coin]) {
           max[coin] = v;
@@ -281,13 +287,10 @@ void displayGraph() {
 
     int xp = -1;
     int yp = -1;
-
     for (size_t xc = 0; xc < HISTO_SIZE; xc++) {
-
       double value = histoPrice[coin][index];
-
       if (value != 0) {
-        int yc = map(value, min[coin], max[coin], 0, maxHistoHeight);
+        int yc = map(value, max[coin], min[coin], 0, maxHistoHeight);
         
         int y = yc + (maxHistoHeight * coin);
         int x = xc * 2;
