@@ -11,7 +11,14 @@
 // Image about
 #include "crypto.h"
 
-enum DisplayMode { MONEY, COIN, PRICE, GRAPH, ABOUT };
+enum DisplayMode
+{
+  MONEY,
+  COIN,
+  PRICE,
+  GRAPH,
+  ABOUT
+};
 enum DisplayMode displayMode = MONEY;
 
 // TFT screen size
@@ -23,8 +30,8 @@ const int BUTTON_UP = 35;
 const int BUTTON_DOWN = 0;
 
 // WiFi
-const char* ssid = "E=mc2";
-const char* password = "** your wifi password ***";
+const char *ssid = "E=mc2";
+const char *password = "** your wifi password ***";
 
 // Config Coins
 const String ERG_ADDRESS = "9hNSS97pfX14L96cFE2CwaAMWxtu1Zq7thcEJgnVtZyGeJnq5g6";
@@ -45,11 +52,17 @@ HTTPClient httpEth, httpErg, httpBtc, httpPrice;
 const int REFRESH_TIME_IN_MILLI = 1 * 60 * 1000;
 unsigned long lastRefresh = millis();
 
-enum Coin { ETH , ERG , BTC, MAX_COIN };
+enum Coin
+{
+  ETH,
+  ERG,
+  BTC,
+  MAX_COIN
+};
 
-String coinSymbol[MAX_COIN]  = { "ETH" , "ERG" , "BTC" };
-int lineDisplay[MAX_COIN] = { 10, 40, 70 };
-int histoColor[MAX_COIN] = { TFT_CYAN, TFT_YELLOW, TFT_MAGENTA };
+String coinSymbol[MAX_COIN] = {"ETH", "ERG", "BTC"};
+int lineDisplay[MAX_COIN] = {10, 40, 70};
+int histoColor[MAX_COIN] = {TFT_CYAN, TFT_YELLOW, TFT_MAGENTA};
 
 const int HISTO_SIZE = SCREEN_WIDTH / 2;
 double myCrypto[MAX_COIN];
@@ -58,7 +71,8 @@ double priceOld[MAX_COIN];
 double histoPrice[MAX_COIN][HISTO_SIZE];
 int histoIndex = 0;
 
-void waitScreen(String text) {
+void waitScreen(String text)
+{
   tft.fillScreen(TFT_BLACK);
   tft.fillSmoothRoundRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 8, TFT_WHITE);
 
@@ -66,20 +80,23 @@ void waitScreen(String text) {
   tft.drawString(text, 5, (tft.height() / 2) - (tft.fontHeight()) / 2);
 }
 
-void initWifi() {
+void initWifi()
+{
   waitScreen("Connect to wifi...");
 
-	// Connexion au Wifi
-	Serial.print("Connecting to WiFi...");
-	WiFi.begin(ssid, password);
-		while (WiFi.status() != WL_CONNECTED) {
-		delay(500);
-	}
-	Serial.println("ok !");
-	Serial.printf("SSID: %s, IP: %s\n", WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
+  // Connexion au Wifi
+  Serial.print("Connecting to WiFi...");
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(500);
+  }
+  Serial.println("ok !");
+  Serial.printf("SSID: %s, IP: %s\n", WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
 }
 
-void iniTFT() {
+void iniTFT()
+{
   Serial.println("Init TFT");
   tft.init();
   tft.setRotation(1);
@@ -87,67 +104,82 @@ void iniTFT() {
   tft.setTextDatum(TL_DATUM);
 }
 
-void checkWifi() {
-  if (WiFi.status() != WL_CONNECTED) {
+void checkWifi()
+{
+  if (WiFi.status() != WL_CONNECTED)
+  {
     initWifi();
   }
 }
 
-double getMyEthereum() {
+double getMyEthereum()
+{
   String url = "https://api.etherscan.io/api?module=account&action=balance&address=" + ETH_ADDRESS + "&tag=latest&apikey=" + ETHERSCAN_API_KEY;
-	httpEth.begin(url);
-	httpEth.addHeader("Accept", "application/json");
-	int httpCode = httpEth.GET();
- 
-	if (httpCode == 200) {
-		String payload = httpEth.getString();
+  httpEth.begin(url);
+  httpEth.addHeader("Accept", "application/json");
+  int httpCode = httpEth.GET();
+
+  if (httpCode == 200)
+  {
+    String payload = httpEth.getString();
     DynamicJsonDocument doc(100);
-		deserializeJson(doc, payload);
-		String result = doc["result"];
+    deserializeJson(doc, payload);
+    String result = doc["result"];
     return ("0.0" + result).toDouble();
-  } else {
+  }
+  else
+  {
     Serial.println("ETH error :" + httpCode);
     return 0;
   }
 }
 
-double getMyErgo() {
-  String url = "https://api.ergoplatform.com/api/v1/addresses/" +  ERG_ADDRESS + "/balance/confirmed";
+double getMyErgo()
+{
+  String url = "https://api.ergoplatform.com/api/v1/addresses/" + ERG_ADDRESS + "/balance/confirmed";
   httpErg.begin(url);
   httpErg.addHeader("Accept", "application/json");
   int httpCode = httpErg.GET();
- 
-  if (httpCode == 200) {
+
+  if (httpCode == 200)
+  {
     String payload = httpErg.getString();
     DynamicJsonDocument doc(100);
     deserializeJson(doc, payload);
     String result = doc["nanoErgs"];
     return result.toDouble() / 1000000000;
-  } else {
+  }
+  else
+  {
     Serial.println("ERG error :" + httpCode);
     return 0;
   }
 }
 
-double getMyBitcoin() {
+double getMyBitcoin()
+{
   String url = "https://blockchain.info/balance?active=" + BTC_ADDRESS;
   httpBtc.begin(url);
   httpBtc.addHeader("Accept", "application/json");
   int httpCode = httpBtc.GET();
- 
-  if (httpCode == 200) {
+
+  if (httpCode == 200)
+  {
     String payload = httpBtc.getString();
     DynamicJsonDocument doc(500);
     deserializeJson(doc, payload);
     String result = doc[BTC_ADDRESS]["final_balance"];
     return result.toDouble() / 100000000;
-  } else {
+  }
+  else
+  {
     Serial.println("getBTC error :" + httpCode);
-  return 0;
+    return 0;
   }
 }
 
-void getPrices() {
+void getPrices()
+{
   checkWifi();
   waitScreen("Loading prices...");
 
@@ -157,17 +189,19 @@ void getPrices() {
   httpPrice.begin(url);
   httpPrice.addHeader("Accept", "application/json");
   httpPrice.addHeader("Authorization", "Apikey " + CRYPTOCOMPARE_API_KEY);
-	int httpCode = httpPrice.GET();
- 
+  int httpCode = httpPrice.GET();
+
   double value = 0;
-	if (httpCode == 200) {
-		String payload = httpPrice.getString();
-		// Serial.println(payload);
+  if (httpCode == 200)
+  {
+    String payload = httpPrice.getString();
+    // Serial.println(payload);
     DynamicJsonDocument doc(300);
-		deserializeJson(doc, payload);
-  
+    deserializeJson(doc, payload);
+
     // {"BTC":{"EUR":28356.11},"ETH":{"EUR":1963.92},"ERG":{"EUR":2.233}}
-    for (size_t i = 0; i < MAX_COIN ; i++) {
+    for (size_t i = 0; i < MAX_COIN; i++)
+    {
       Coin coin = (Coin)i;
 
       String result = doc[coinSymbol[coin]][DISPLAY_MONEY];
@@ -180,42 +214,56 @@ void getPrices() {
       Serial.print(coinSymbol[coin] + " = ");
       Serial.println(value);
     }
-  } else {
+  }
+  else
+  {
     Serial.println("getPrice error :" + httpCode);
   }
-  
+
   histoIndex++;
-  if (histoIndex >= HISTO_SIZE) {
+  if (histoIndex >= HISTO_SIZE)
+  {
     histoIndex = 0;
   }
 }
 
-void getMyCrypto() {
+void getMyCrypto()
+{
   checkWifi();
   waitScreen("Loading crypto...");
-  
+
   myCrypto[ETH] = getMyEthereum();
   myCrypto[ERG] = getMyErgo();
   myCrypto[BTC] = getMyBitcoin();
 }
 
-int getPriceColor(double newPrice, double oldPrice) {
-  if (oldPrice == 0.0) {
+int getPriceColor(double newPrice, double oldPrice)
+{
+  if (oldPrice == 0.0)
+  {
     return TFT_DARKGREY;
-  } else if (newPrice > oldPrice) {
+  }
+  else if (newPrice > oldPrice)
+  {
     return TFT_GREEN;
-  } else if (newPrice < oldPrice) {
+  }
+  else if (newPrice < oldPrice)
+  {
     return TFT_RED;
-  } else {
+  }
+  else
+  {
     return TFT_WHITE;
   }
 }
 
-void displayMoney() {
+void displayMoney()
+{
   tft.fillScreen(TFT_BLACK);
   tft.drawRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, TFT_ORANGE);
 
-  for (size_t i = 0; i < MAX_COIN ; i++) {
+  for (size_t i = 0; i < MAX_COIN; i++)
+  {
     Coin coin = (Coin)i;
 
     tft.setTextColor(TFT_GOLD);
@@ -227,75 +275,88 @@ void displayMoney() {
   }
 }
 
-void displayCoin() {
+void displayCoin()
+{
   tft.fillScreen(TFT_BLACK);
   tft.drawRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, TFT_ORANGE);
 
-  for (size_t i = 0; i < MAX_COIN ; i++) {
+  for (size_t i = 0; i < MAX_COIN; i++)
+  {
     Coin coin = (Coin)i;
 
     tft.setTextColor(TFT_WHITE);
     tft.drawString(coinSymbol[coin] + " :", 5, lineDisplay[coin]);
-    
+
     tft.setTextColor(TFT_BLUE);
     tft.drawFloat(myCrypto[coin], 5, 120, lineDisplay[coin]);
   }
 }
 
-void displayPrice() {
+void displayPrice()
+{
   tft.fillScreen(TFT_BLACK);
   tft.drawRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, TFT_ORANGE);
 
-  for (size_t i = 0; i < MAX_COIN ; i++) {
+  for (size_t i = 0; i < MAX_COIN; i++)
+  {
     Coin coin = (Coin)i;
 
     tft.setTextColor(TFT_VIOLET);
     tft.drawString(coinSymbol[coin] + " :", 5, lineDisplay[coin]);
-    
+
     tft.setTextColor(TFT_MAGENTA);
     tft.drawFloat(priceCurrent[coin], 5, 120, lineDisplay[coin]);
   }
 }
 
-void displayGraph() {
+void displayGraph()
+{
   tft.fillScreen(TFT_BLACK);
 
   int maxHistoHeight = SCREEN_HEIGHT / MAX_COIN;
 
-  for (size_t c = 0; c < MAX_COIN ; c++) {
+  for (size_t c = 0; c < MAX_COIN; c++)
+  {
     Coin coin = (Coin)c;
     int index = histoIndex;
 
-    double min[MAX_COIN] = { 99999, 99999, 99999 };
-    double max[MAX_COIN] = { -99999, -99999, -99999 };
+    double min[MAX_COIN] = {99999, 99999, 99999};
+    double max[MAX_COIN] = {-99999, -99999, -99999};
 
-    for (size_t i = 0; i < HISTO_SIZE; i++) {
+    for (size_t i = 0; i < HISTO_SIZE; i++)
+    {
       double v = histoPrice[coin][i];
-      if (v != 0) {
-        if (v > max[coin]) {
+      if (v != 0)
+      {
+        if (v > max[coin])
+        {
           max[coin] = v;
         }
-        if (v < min[coin]) {
+        if (v < min[coin])
+        {
           min[coin] = v;
         }
       }
     }
-    min[coin] = min[coin] - 1;  // (min[coin] / 3);
-    max[coin] = max[coin] + 1;  // (max[coin] / 3);
+    min[coin] = min[coin] - 1; // (min[coin] / 3);
+    max[coin] = max[coin] + 1; // (max[coin] / 3);
 
     tft.drawLine(0, maxHistoHeight * coin, SCREEN_WIDTH, maxHistoHeight * coin, TFT_LIGHTGREY);
 
     int xp = -1;
     int yp = -1;
-    for (size_t xc = 0; xc < HISTO_SIZE; xc++) {
+    for (size_t xc = 0; xc < HISTO_SIZE; xc++)
+    {
       double value = histoPrice[coin][index];
-      if (value != 0) {
+      if (value != 0)
+      {
         int yc = map(value, max[coin], min[coin], 0, maxHistoHeight);
-        
+
         int y = yc + (maxHistoHeight * coin);
         int x = xc * 2;
 
-        if (xp == -1 && yp == -1) {
+        if (xp == -1 && yp == -1)
+        {
           xp = x;
           yp = y;
         }
@@ -307,14 +368,16 @@ void displayGraph() {
       }
 
       index++;
-      if (index >= HISTO_SIZE) {
+      if (index >= HISTO_SIZE)
+      {
         index = 0;
       }
     }
   }
 }
 
-void displayAbout() {
+void displayAbout()
+{
   tft.fillScreen(TFT_BLACK);
 
   tft.setSwapBytes(true);
@@ -324,64 +387,72 @@ void displayAbout() {
   tft.drawString("(c) Deuttai", 5, SCREEN_HEIGHT - tft.fontHeight());
 }
 
-void refreshScreen() {
-  switch (displayMode) {
-    case MONEY:
-      displayMoney();
-      break;
-    case COIN:
-      displayCoin();
-      break;
-    case PRICE:
-      displayPrice();
-      break;
-    case GRAPH:
-      displayGraph();
-      break;
-    case ABOUT:
-      displayAbout();
-      break;
+void refreshScreen()
+{
+  switch (displayMode)
+  {
+  case MONEY:
+    displayMoney();
+    break;
+  case COIN:
+    displayCoin();
+    break;
+  case PRICE:
+    displayPrice();
+    break;
+  case GRAPH:
+    displayGraph();
+    break;
+  case ABOUT:
+    displayAbout();
+    break;
   }
 }
 
-void changeMode() {
-  switch (displayMode) {
-    case MONEY:
-      displayMode = COIN;
-      break;
-    case COIN:
-      displayMode = PRICE;
-      break;
-    case PRICE:
-      displayMode = GRAPH;
-      break;
-    case GRAPH:
-      displayMode = ABOUT;
-      break;
-    case ABOUT:
-      displayMode = MONEY;
-      break;
+void changeMode()
+{
+  switch (displayMode)
+  {
+  case MONEY:
+    displayMode = COIN;
+    break;
+  case COIN:
+    displayMode = PRICE;
+    break;
+  case PRICE:
+    displayMode = GRAPH;
+    break;
+  case GRAPH:
+    displayMode = ABOUT;
+    break;
+  case ABOUT:
+    displayMode = MONEY;
+    break;
   }
 }
 
-void buttonPressedHandler(Button2& btn) {
-    switch (btn.getPin()) {
-      case BUTTON_DOWN:
-        getPrices();
-        refreshScreen();
-        break;
-      case BUTTON_UP:
-        changeMode();
-        refreshScreen();
-        break;
-      default:
-        break;
-    }
+void buttonPressedHandler(Button2 &btn)
+{
+  switch (btn.getPin())
+  {
+  case BUTTON_DOWN:
+    getPrices();
+    refreshScreen();
+    break;
+  case BUTTON_UP:
+    changeMode();
+    refreshScreen();
+    break;
+  default:
+    break;
+  }
 }
 
-void setup() {
+void setup()
+{
   Serial.begin(115200);
-  while (!Serial) {
+  while (!Serial)
+  {
     delay(20);
   }
 
@@ -397,19 +468,22 @@ void setup() {
 
   buttonUp.begin(BUTTON_UP);
   buttonUp.setPressedHandler(buttonPressedHandler);
-  
+
   buttonDown.begin(BUTTON_DOWN);
   buttonDown.setPressedHandler(buttonPressedHandler);
 }
 
-void loop() {
-  while (true) {
+void loop()
+{
+  while (true)
+  {
     buttonUp.loop();
     buttonDown.loop();
 
     delay(100);
 
-    if (millis() - lastRefresh > REFRESH_TIME_IN_MILLI) {
+    if (millis() - lastRefresh > REFRESH_TIME_IN_MILLI)
+    {
       lastRefresh = millis();
       getPrices();
       refreshScreen();
