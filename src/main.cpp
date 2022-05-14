@@ -113,15 +113,15 @@ double getMyEthereum() {
 
 double getMyErgo() {
   String url = "https://api.ergoplatform.com/api/v1/addresses/" +  ERG_ADDRESS + "/balance/confirmed";
-	httpErg.begin(url);
-	httpErg.addHeader("Accept", "application/json");
-	int httpCode = httpErg.GET();
+  httpErg.begin(url);
+  httpErg.addHeader("Accept", "application/json");
+  int httpCode = httpErg.GET();
  
-	if (httpCode == 200) {
-		String payload = httpErg.getString();
+  if (httpCode == 200) {
+    String payload = httpErg.getString();
     DynamicJsonDocument doc(100);
-		deserializeJson(doc, payload);
-		String result = doc["nanoErgs"];
+    deserializeJson(doc, payload);
+    String result = doc["nanoErgs"];
     return result.toDouble() / 1000000000;
   } else {
     Serial.println("ERG error :" + httpCode);
@@ -131,19 +131,19 @@ double getMyErgo() {
 
 double getMyBitcoin() {
   String url = "https://blockchain.info/balance?active=" + BTC_ADDRESS;
- 	httpBtc.begin(url);
-	httpBtc.addHeader("Accept", "application/json");
-	int httpCode = httpBtc.GET();
+  httpBtc.begin(url);
+  httpBtc.addHeader("Accept", "application/json");
+  int httpCode = httpBtc.GET();
  
-	if (httpCode == 200) {
-		String payload = httpBtc.getString();
+  if (httpCode == 200) {
+    String payload = httpBtc.getString();
     DynamicJsonDocument doc(500);
-		deserializeJson(doc, payload);
-		String result = doc[BTC_ADDRESS]["final_balance"];
+    deserializeJson(doc, payload);
+    String result = doc[BTC_ADDRESS]["final_balance"];
     return result.toDouble() / 100000000;
   } else {
     Serial.println("getBTC error :" + httpCode);
-    return 0;
+  return 0;
   }
 }
 
@@ -154,7 +154,7 @@ void getPrices() {
   String fsyms = "BTC,ETH,ERG";
 
   String url = "https://min-api.cryptocompare.com/data/pricemulti?fsyms=" + fsyms + "&tsyms=" + DISPLAY_MONEY;
-	httpPrice.begin(url);
+  httpPrice.begin(url);
   httpPrice.addHeader("Accept", "application/json");
   httpPrice.addHeader("Authorization", "Apikey " + CRYPTOCOMPARE_API_KEY);
 	int httpCode = httpPrice.GET();
