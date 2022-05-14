@@ -183,7 +183,12 @@ void getPrices()
   checkWifi();
   waitScreen("Loading prices...");
 
-  String fsyms = "BTC,ETH,ERG";
+  String fsyms = "";
+  for (size_t i = 0; i < MAX_COIN; i++)
+  {
+    Coin coin = (Coin)i;
+    fsyms = fsyms + coinSymbol[coin] + ",";
+  }
 
   String url = "https://min-api.cryptocompare.com/data/pricemulti?fsyms=" + fsyms + "&tsyms=" + DISPLAY_MONEY;
   httpPrice.begin(url);
@@ -195,11 +200,9 @@ void getPrices()
   if (httpCode == 200)
   {
     String payload = httpPrice.getString();
-    // Serial.println(payload);
     DynamicJsonDocument doc(300);
     deserializeJson(doc, payload);
 
-    // {"BTC":{"EUR":28356.11},"ETH":{"EUR":1963.92},"ERG":{"EUR":2.233}}
     for (size_t i = 0; i < MAX_COIN; i++)
     {
       Coin coin = (Coin)i;
@@ -304,7 +307,7 @@ void displayPrice()
     tft.setTextColor(TFT_VIOLET);
     tft.drawString(coinSymbol[coin] + " :", 5, lineDisplay[coin]);
 
-    tft.setTextColor(TFT_MAGENTA);
+    tft.setTextColor(getPriceColor(priceCurrent[coin], priceOld[coin]));
     tft.drawFloat(priceCurrent[coin], 5, 120, lineDisplay[coin]);
   }
 }
