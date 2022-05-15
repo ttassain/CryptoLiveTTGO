@@ -26,8 +26,9 @@ const int SCREEN_WIDTH = 240;
 const int SCREEN_HEIGHT = 135;
 
 // GPIOs
-const int BUTTON_UP = 35;
-const int BUTTON_DOWN = 0;
+const uint8_t BUTTON_UP = 35;
+const uint8_t BUTTON_DOWN = 0;
+const uint8_t BATTERY = 34;
 
 // WiFi
 const char *ssid = "E=mc2";
@@ -44,13 +45,12 @@ const String CRYPTOCOMPARE_API_KEY = "*** your cryptocompare api key ***";
 const String DISPLAY_MONEY = "EUR";
 
 TFT_eSPI tft = TFT_eSPI(SCREEN_HEIGHT, SCREEN_WIDTH);
-
 Button2 buttonUp, buttonDown;
-
 HTTPClient httpEth, httpErg, httpBtc, httpPrice;
 
 const int REFRESH_TIME_IN_MILLI = 1 * 60 * 1000;
 unsigned long lastRefresh = millis();
+boolean buzy = false;
 
 enum Coin
 {
@@ -64,7 +64,10 @@ String coinSymbol[MAX_COIN] = {"ETH", "ERG", "BTC"};
 int lineDisplay[MAX_COIN] = {10, 40, 70};
 int histoColor[MAX_COIN] = {TFT_CYAN, TFT_YELLOW, TFT_MAGENTA};
 
-const int HISTO_SIZE = SCREEN_WIDTH / 2;
+// History
+const int HISTO_STEP = 2;
+const int HISTO_SIZE = SCREEN_WIDTH / HISTO_STEP;
+const int HISTO_HEIGHT = SCREEN_HEIGHT / MAX_COIN;
 double myCrypto[MAX_COIN];
 double priceCurrent[MAX_COIN];
 double priceOld[MAX_COIN];
@@ -189,6 +192,7 @@ void getPrices()
     Coin coin = (Coin)i;
     fsyms = fsyms + coinSymbol[coin] + ",";
   }
+  fsyms.remove(fsyms.length() - 1);
 
   String url = "https://min-api.cryptocompare.com/data/pricemulti?fsyms=" + fsyms + "&tsyms=" + DISPLAY_MONEY;
   httpPrice.begin(url);
@@ -316,8 +320,6 @@ void displayGraph()
 {
   tft.fillScreen(TFT_BLACK);
 
-  int maxHistoHeight = SCREEN_HEIGHT / MAX_COIN;
-
   for (size_t c = 0; c < MAX_COIN; c++)
   {
     Coin coin = (Coin)c;
@@ -341,10 +343,10 @@ void displayGraph()
         }
       }
     }
-    min[coin] = min[coin] - 1; // (min[coin] / 3);
-    max[coin] = max[coin] + 1; // (max[coin] / 3);
+    min[coin] = min[coin] - 1;
+    max[coin] = max[coin] + 1;
 
-    tft.drawLine(0, maxHistoHeight * coin, SCREEN_WIDTH, maxHistoHeight * coin, TFT_LIGHTGREY);
+    tft.drawLine(0, HISTO_HEIGHT * coin, SCREEN_WIDTH, HISTO_HEIGHT * coin, TFT_LIGHTGREY);
 
     int xp = -1;
     int yp = -1;
@@ -353,10 +355,10 @@ void displayGraph()
       double value = histoPrice[coin][index];
       if (value != 0)
       {
-        int yc = map(value, max[coin], min[coin], 0, maxHistoHeight);
+        int yc = map(value, max[coin], min[coin], 0, HISTO_HEIGHT);
 
-        int y = yc + (maxHistoHeight * coin);
-        int x = xc * 2;
+        int y = yc + (HISTO_HEIGHT * coin);
+        int x = xc * HISTO_STEP;
 
         if (xp == -1 && yp == -1)
         {
@@ -379,6 +381,12 @@ void displayGraph()
   }
 }
 
+float getBatteryVoltage()
+{
+  float vbat = (float)(analogRead(BATTERY)) * 3600 / 4095 * 2;
+  return vbat / 1000;
+}
+
 void displayAbout()
 {
   tft.fillScreen(TFT_BLACK);
@@ -387,11 +395,13 @@ void displayAbout()
   tft.pushImage(0, 0, 240, 120, crypto);
 
   tft.setTextColor(TFT_RED);
-  tft.drawString("(c) Deuttai", 5, SCREEN_HEIGHT - tft.fontHeight());
+  tft.drawString("Battery :", 5, SCREEN_HEIGHT - tft.fontHeight());
+  tft.drawFloat(getBatteryVoltage(), 4, 120, SCREEN_HEIGHT - tft.fontHeight());
 }
 
 void refreshScreen()
 {
+  buzy = true;
   switch (displayMode)
   {
   case MONEY:
@@ -410,6 +420,7 @@ void refreshScreen()
     displayAbout();
     break;
   }
+  buzy = false;
 }
 
 void changeMode()
@@ -436,6 +447,10 @@ void changeMode()
 
 void buttonPressedHandler(Button2 &btn)
 {
+  if (buzy)
+  {
+    return;
+  }
   switch (btn.getPin())
   {
   case BUTTON_DOWN:
