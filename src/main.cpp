@@ -343,8 +343,12 @@ void displayGraph()
         }
       }
     }
-    min[coin] = min[coin] - 1;
-    max[coin] = max[coin] + 1;
+    min[coin] = (min[coin] * 1000) - 1;
+    max[coin] = (max[coin] * 1000) + 1;
+
+    Serial.print(min[coin]);
+    Serial.print(" / ");
+    Serial.println(max[coin]);
 
     tft.drawLine(0, HISTO_HEIGHT * coin, SCREEN_WIDTH, HISTO_HEIGHT * coin, TFT_LIGHTGREY);
 
@@ -352,7 +356,7 @@ void displayGraph()
     int yp = -1;
     for (size_t xc = 0; xc < HISTO_SIZE; xc++)
     {
-      double value = histoPrice[coin][index];
+      double value = histoPrice[coin][index] * 1000;
       if (value != 0)
       {
         int yc = map(value, max[coin], min[coin], 0, HISTO_HEIGHT);
