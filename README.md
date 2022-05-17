@@ -2,6 +2,10 @@
 
 Petit programme qui permet de voir l'évolution de vos cryptos monnaies.
 
+## Hardware
+
+Module TTGO T-Display (ESP-32 avec ecran TFT ST7789V 135x240)
+
 ## Affichage
 
 Cours des monnaies :\
