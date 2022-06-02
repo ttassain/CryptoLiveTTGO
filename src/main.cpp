@@ -52,27 +52,35 @@ const int REFRESH_TIME_IN_MILLI = 1 * 60 * 1000;
 unsigned long lastRefresh = millis();
 boolean buzy = false;
 
-enum Coin
+enum CryptoEnum
 {
   ETH,
   ERG,
   BTC,
-  MAX_COIN
+  MAX_CRYPTO
 };
-
-String coinSymbol[MAX_COIN] = {"ETH", "ERG", "BTC"};
-int lineDisplay[MAX_COIN] = {10, 40, 70};
-int histoColor[MAX_COIN] = {TFT_CYAN, TFT_YELLOW, TFT_MAGENTA};
 
 // History
 const int HISTO_STEP = 2;
 const int HISTO_SIZE = SCREEN_WIDTH / HISTO_STEP;
-const int HISTO_HEIGHT = SCREEN_HEIGHT / MAX_COIN;
-double myCrypto[MAX_COIN];
-double priceCurrent[MAX_COIN];
-double priceOld[MAX_COIN];
-double histoPrice[MAX_COIN][HISTO_SIZE];
+const int HISTO_HEIGHT = SCREEN_HEIGHT / MAX_CRYPTO;
 int histoIndex = 0;
+
+struct Crypto
+{
+  String symbol;
+  int histoColor;
+  int lineDisplay;
+  double myCrypto;
+  double priceCurrent;
+  double priceOld;
+  double histoPrice[HISTO_SIZE];
+};
+
+Crypto cryptos[MAX_CRYPTO] = {
+    {"ETH", TFT_CYAN, 10},
+    {"ERG", TFT_YELLOW, 40},
+    {"BTC", TFT_MAGENTA, 70}};
 
 void waitScreen(String text)
 {
@@ -187,10 +195,9 @@ void getPrices()
   waitScreen("Loading prices...");
 
   String fsyms = "";
-  for (size_t i = 0; i < MAX_COIN; i++)
+  for (size_t coin = 0; coin < MAX_CRYPTO; coin++)
   {
-    Coin coin = (Coin)i;
-    fsyms = fsyms + coinSymbol[coin] + ",";
+    fsyms = fsyms + cryptos[coin].symbol + ",";
   }
   fsyms.remove(fsyms.length() - 1);
 
@@ -207,18 +214,16 @@ void getPrices()
     DynamicJsonDocument doc(300);
     deserializeJson(doc, payload);
 
-    for (size_t i = 0; i < MAX_COIN; i++)
+    for (size_t coin = 0; coin < MAX_CRYPTO; coin++)
     {
-      Coin coin = (Coin)i;
-
-      String result = doc[coinSymbol[coin]][DISPLAY_MONEY];
+      String result = doc[cryptos[coin].symbol][DISPLAY_MONEY];
       double value = result.toDouble();
 
-      priceOld[coin] = priceCurrent[coin];
-      priceCurrent[coin] = value;
-      histoPrice[coin][histoIndex] = priceCurrent[coin];
+      cryptos[coin].priceOld = cryptos[coin].priceCurrent;
+      cryptos[coin].priceCurrent = value;
+      cryptos[coin].histoPrice[histoIndex] = cryptos[coin].priceCurrent;
 
-      Serial.print(coinSymbol[coin] + " = ");
+      Serial.print(cryptos[coin].symbol + " = ");
       Serial.println(value);
     }
   }
@@ -239,9 +244,9 @@ void getMyCrypto()
   checkWifi();
   waitScreen("Loading crypto...");
 
-  myCrypto[ETH] = getMyEthereum();
-  myCrypto[ERG] = getMyErgo();
-  myCrypto[BTC] = getMyBitcoin();
+  cryptos[ETH].myCrypto = getMyEthereum();
+  cryptos[ERG].myCrypto = getMyErgo();
+  cryptos[BTC].myCrypto = getMyBitcoin();
 }
 
 int getPriceColor(double newPrice, double oldPrice)
@@ -269,16 +274,14 @@ void displayMoney()
   tft.fillScreen(TFT_BLACK);
   tft.drawRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, TFT_ORANGE);
 
-  for (size_t i = 0; i < MAX_COIN; i++)
+  for (size_t coin = 0; coin < MAX_CRYPTO; coin++)
   {
-    Coin coin = (Coin)i;
-
     tft.setTextColor(TFT_GOLD);
-    tft.drawString(coinSymbol[coin] + " :", 5, lineDisplay[coin]);
+    tft.drawString(cryptos[coin].symbol + " :", 5, cryptos[coin].lineDisplay);
 
-    double value = myCrypto[coin] * priceCurrent[coin];
-    tft.setTextColor(getPriceColor(priceCurrent[coin], priceOld[coin]));
-    tft.drawFloat(value, 5, 120, lineDisplay[coin]);
+    double value = cryptos[coin].myCrypto * cryptos[coin].priceCurrent;
+    tft.setTextColor(getPriceColor(cryptos[coin].priceCurrent, cryptos[coin].priceOld));
+    tft.drawFloat(value, 5, 120, cryptos[coin].lineDisplay);
   }
 }
 
@@ -287,15 +290,13 @@ void displayCoin()
   tft.fillScreen(TFT_BLACK);
   tft.drawRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, TFT_ORANGE);
 
-  for (size_t i = 0; i < MAX_COIN; i++)
+  for (size_t coin = 0; coin < MAX_CRYPTO; coin++)
   {
-    Coin coin = (Coin)i;
-
     tft.setTextColor(TFT_WHITE);
-    tft.drawString(coinSymbol[coin] + " :", 5, lineDisplay[coin]);
+    tft.drawString(cryptos[coin].symbol + " :", 5, cryptos[coin].lineDisplay);
 
     tft.setTextColor(TFT_BLUE);
-    tft.drawFloat(myCrypto[coin], 5, 120, lineDisplay[coin]);
+    tft.drawFloat(cryptos[coin].myCrypto, 5, 120, cryptos[coin].lineDisplay);
   }
 }
 
@@ -304,15 +305,13 @@ void displayPrice()
   tft.fillScreen(TFT_BLACK);
   tft.drawRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, TFT_ORANGE);
 
-  for (size_t i = 0; i < MAX_COIN; i++)
+  for (size_t coin = 0; coin < MAX_CRYPTO; coin++)
   {
-    Coin coin = (Coin)i;
-
     tft.setTextColor(TFT_VIOLET);
-    tft.drawString(coinSymbol[coin] + " :", 5, lineDisplay[coin]);
+    tft.drawString(cryptos[coin].symbol + " :", 5, cryptos[coin].lineDisplay);
 
-    tft.setTextColor(getPriceColor(priceCurrent[coin], priceOld[coin]));
-    tft.drawFloat(priceCurrent[coin], 5, 120, lineDisplay[coin]);
+    tft.setTextColor(getPriceColor(cryptos[coin].priceCurrent, cryptos[coin].priceOld));
+    tft.drawFloat(cryptos[coin].priceCurrent, 5, 120, cryptos[coin].lineDisplay);
   }
 }
 
@@ -320,17 +319,16 @@ void displayGraph()
 {
   tft.fillScreen(TFT_BLACK);
 
-  for (size_t c = 0; c < MAX_COIN; c++)
+  for (size_t coin = 0; coin < MAX_CRYPTO; coin++)
   {
-    Coin coin = (Coin)c;
     int index = histoIndex;
 
-    double min[MAX_COIN] = {99999, 99999, 99999};
-    double max[MAX_COIN] = {-99999, -99999, -99999};
+    double min[MAX_CRYPTO] = {99999, 99999, 99999};
+    double max[MAX_CRYPTO] = {-99999, -99999, -99999};
 
     for (size_t i = 0; i < HISTO_SIZE; i++)
     {
-      double v = histoPrice[coin][i];
+      double v = cryptos[coin].histoPrice[i];
       if (v != 0)
       {
         if (v > max[coin])
@@ -356,7 +354,7 @@ void displayGraph()
     int yp = -1;
     for (size_t xc = 0; xc < HISTO_SIZE; xc++)
     {
-      double value = histoPrice[coin][index] * 1000;
+      double value = cryptos[coin].histoPrice[index] * 1000;
       if (value != 0)
       {
         int yc = map(value, max[coin], min[coin], 0, HISTO_HEIGHT);
@@ -370,7 +368,7 @@ void displayGraph()
           yp = y;
         }
 
-        tft.drawLine(x, y, xp, yp, histoColor[coin]);
+        tft.drawLine(x, y, xp, yp, cryptos[coin].histoColor);
 
         xp = x;
         yp = y;
